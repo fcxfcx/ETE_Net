@@ -18,9 +18,9 @@ namespace database_basic
         }
 
         public int FindUser(string str1,string str2)
-            //数据库通过sqldatareader方法判定用户是否存在，密码是否正确，正确返回1，不正确返回2
+            //数据库通过sqldatareader方法判定用户是否存在，密码是否正确，正确返回0，不正确返回7
         {
-            int result = 2; 
+            int result = 7; 
             try
             {
                 SqlCommand cmd = new SqlCommand();
@@ -31,12 +31,12 @@ namespace database_basic
                 Console.WriteLine("已经发送报文");
                 if(sdr.Read())
                 {
-                    result = 1;
+                    result = 0;
                     sdr.Close();
                 }
                 else
                 {
-                    result = 2;
+                    result = 7;
                     sdr.Close();
                 }
             }
@@ -48,9 +48,9 @@ namespace database_basic
         }
 
         public int NewUser(string str1,string str2)
-            //向数据库中添加数据，达到创建用户的目的，成功返回1，失败返回2，用户已存在返回3
+            //向数据库中添加数据，达到创建用户的目的，成功返回0，失败返回7，用户已存在返回8
         {
-            int result = 2;
+            int result = 7;
             try
             {
                 SqlCommand cmd0 = new SqlCommand();
@@ -60,7 +60,7 @@ namespace database_basic
                 SqlDataReader sdr0 = cmd0.ExecuteReader();
                 if (sdr0.Read())
                 {
-                    result = 3;
+                    result = 8;
                     sdr0.Close();
                 }//首先遍历数据库查看是否已存在该用户
                 else
@@ -79,12 +79,12 @@ namespace database_basic
                     SqlDataReader sdr = cmd2.ExecuteReader();
                     if (sdr.Read())
                     {
-                        result = 1;
+                        result = 0;
                         sdr.Close();
                     }
                     else
                     {
-                        result = 2;
+                        result = 7;
                         sdr.Close();
                     }
                 }
@@ -126,9 +126,9 @@ namespace database_basic
         }
 
         public int Calibrate(string str1,string str2)
-        //向数据库中添加某用户的校准数据，格式为字符串，用*隔开，成功返回1，失败返回2
+        //向数据库中添加某用户的校准数据，格式为字符串，用*隔开，成功返回0，失败返回7，已存在并更新返回8
         {
-            int result = 2;
+            int result = 7;
             try
             {
                 SqlCommand cmd0 = new SqlCommand();
@@ -152,12 +152,12 @@ namespace database_basic
                     SqlDataReader sdr1 = cmd4.ExecuteReader();
                     if (sdr1.Read())
                     {
-                        result = 1;
+                        result = 8;
                         sdr1.Close();
                     }
                     else
                     {
-                        result = 2;
+                        result = 7;
                         sdr1.Close();
                     }
                 }//首先遍历数据库查看是否已存在该用户的校准数据，有则更新数据，没有则加入数据
@@ -177,12 +177,12 @@ namespace database_basic
                     SqlDataReader sdr = cmd2.ExecuteReader();
                     if (sdr.Read())
                     {
-                        result = 1;
+                        result = 0;
                         sdr.Close();
                     }
                     else
                     {
-                        result = 2;
+                        result = 7;
                         sdr.Close();
                     }
                 }

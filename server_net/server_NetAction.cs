@@ -180,7 +180,7 @@ namespace server_net
                 Console.WriteLine("收到登陆密码：{0}", password);
                 database = mydatabase.FindUser(username,password);
                 Console.WriteLine("处理结果为：{0}", database);
-                result = BitConverter.GetBytes(database);//通过数据库查找，告知客户端，连接问题返回0，登陆成功返回1，用户名或密码不正确返回2
+                result = BitConverter.GetBytes(database);//通过数据库查找，告知客户端，连接问题返回-1，登陆成功返回0，用户名或密码不正确返回7
                 managesocket.Send(result);
             }
             catch(Exception e)
@@ -206,7 +206,7 @@ namespace server_net
                 database = mydatabase.NewUser(username, password);
                 Directory.CreateDirectory(@"D:\UserDataTest\"+username);//在注册的同时创建一个储存用户数据的文件夹
                 Console.WriteLine("处理结果为：{0}", database);
-                result = BitConverter.GetBytes(database);//通过数据库创建，告知客户端，连接问题返回0，成功返回1，失败返回2，已存在返回3
+                result = BitConverter.GetBytes(database);//通过数据库创建，告知客户端，连接问题返回-1，成功返回0，数据库创建失败返回7，已存在返回8
                 managesocket.Send(result);
             }
             catch(Exception e)
@@ -250,7 +250,7 @@ namespace server_net
                 Console.WriteLine("收到用户校准数据：{0}", data);
                 database = mydatabase.Calibrate(username, data);
                 Console.WriteLine("处理结果为：{0}", database);
-                result = BitConverter.GetBytes(database);//通过数据库创建，告知客户端，连接问题返回0，成功返回1，失败返回2，已存在返回3
+                result = BitConverter.GetBytes(database);//通过数据库创建，告知客户端，连接问题返回-1，成功返回0，更新失败返回7，已存在并更新返回8
                 managesocket.Send(result);
             }
             catch (Exception e)
