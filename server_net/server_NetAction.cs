@@ -139,6 +139,13 @@ namespace server_net
                             ClientThread[clientNow].Abort();
                             ClientThread.Remove(definesocket.RemoteEndPoint.ToString());
                             break;
+                        case 4:
+                            Console.WriteLine("开始回应上传眼球流数据请求");
+                            type = BitConverter.GetBytes(1);//给客户端发送消息表示已经接收到操作类型的信息
+                            definesocket.Send(type);
+                            Console.WriteLine("已告知允许发送数据");
+                            Register(definesocket);
+                            break;
                     }
                 }
                 catch (ThreadAbortException e)

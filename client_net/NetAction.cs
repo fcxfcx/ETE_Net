@@ -126,7 +126,7 @@ namespace client_net
        
         public int Login(string username,string password)
         {
-            int result=0;//如果返回值是0则说明连接出现问题
+            int result=-1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
             if (IsConnected(Connectsocket)==true)
@@ -155,11 +155,11 @@ namespace client_net
             return result;
 
         }
-        //操作类型1：登录请求，返回值为登陆结果，0为连接问题，1为登陆成功，2为用户名或密码错误
+        //操作类型1：登录请求，返回值为登陆结果，-1为连接问题，0为登陆成功，7为用户名或密码错误
 
         public int Register(string username, string password)
         {
-            int result = 0;//如果返回值是0则说明连接出现问题
+            int result = -1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
             if (IsConnected(Connectsocket) == true)
@@ -187,11 +187,11 @@ namespace client_net
             }
             return result;
         }
-        //操作类型2：注册请求，返回值为注册结果，0为连接问题，1为登陆成功，2为数据库创建失败，3为用户已存在
+        //操作类型2：注册请求，返回值为注册结果，-1为连接问题，0为登陆成功，7为数据库创建失败，8为用户已存在
 
-        public string IfCalibrate(string username)
+        public int SendEyeStream(string str1,string str2)
         {
-            string result = "0";//如果返回值是"0"则说明连接出现问题
+            int result = -1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
             if (IsConnected(Connectsocket) == true)
@@ -204,39 +204,10 @@ namespace client_net
                     returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
                     if (returnmsg == 1)
                     {
-                        SendString(Connectsocket, username);
-                        Console.WriteLine("已发送用户名：{0}", username);
-                       result = ReceiveString(Connectsocket);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
-            return result;
-        }
-        //操作类型4：查询用户的校准数据，无数据返回"-1*-1*-1*-1*-1*-1"，有数据则返回数据
-
-        public int Calibrate(string username,string data)
-        {
-            int result = 0;//如果返回值是0则说明连接出现问题
-            byte[] callback = new byte[4];
-            int returnmsg = 0;
-            if (IsConnected(Connectsocket) == true)
-            {
-                try
-                {
-                    Sendtype = 5;
-                    Connectsocket.Send(BitConverter.GetBytes(Sendtype));
-                    Connectsocket.Receive(callback);
-                    returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
-                    if (returnmsg == 1)
-                    {
-                        SendString(Connectsocket, username);
-                        Console.WriteLine("已发送用户名：{0}", username);
-                        SendString(Connectsocket, data);
-                        Console.WriteLine("已发送校准数据：{0}", data);
+                        SendString(Connectsocket,str1);
+                        Console.WriteLine("已发送x坐标流：{0}", str1);
+                        SendString(Connectsocket,str2);
+                        Console.WriteLine("已发送y坐标流：{0}", str2);
                         Connectsocket.Receive(callback);
                         result = BitConverter.ToInt32(callback, 0);
                     }
@@ -248,6 +219,6 @@ namespace client_net
             }
             return result;
         }
-        //操作类型5：上传用户的校准数据，0为连接问题，1为成功，2为失败
+        //操作类型4：上传眼球数据流到服务器，返回值为结果，-1为连接问题，0为上传成功，7为上传失败
     }
 }
