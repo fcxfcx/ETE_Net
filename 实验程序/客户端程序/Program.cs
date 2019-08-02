@@ -53,24 +53,6 @@ namespace 客户端程序
                         Console.WriteLine("已断开连接，请关闭程序");
                         Console.ReadKey();
                         break;
-                    case 4:
-                        Console.WriteLine("请输入要查询的用户名");
-                        username = Console.ReadLine();
-                        Result = newclient.IfCalibrate(username);
-                        if (string.Equals(Result, "0")) Console.WriteLine("连接出现问题");
-                        if (string.Equals(Result, "-1*-1*-1*-1*-1*-1")) Console.WriteLine("系统中没有该用户的校准数据");
-                        else Console.WriteLine("该用户的校准数据为：{0}");
-                        break;
-                    case 5:
-                        Console.WriteLine("请输入数据来源的用户名");
-                        username = Console.ReadLine();
-                        Console.WriteLine("请输入校准数据");
-                        data = Console.ReadLine();
-                        result = newclient.Calibrate(username, data);
-                        if (result == 0) Console.WriteLine("连接出现问题");
-                        if (result == 1) Console.WriteLine("上传成功");
-                        if (result == 2) Console.WriteLine("数据库出现了问题！");
-                        break;
                 }
             }
         }
