@@ -220,5 +220,34 @@ namespace client_net
             return result;
         }
         //操作类型4：上传眼球数据流到服务器，返回值为结果，-1为连接问题，0为上传成功，7为上传失败
+
+        public string AskFile(string filename)
+        {
+            string result = "失败";//如果返回值是-1则说明连接出现问题
+            byte[] callback = new byte[4];
+            int returnmsg = 0;
+            if (IsConnected(Connectsocket) == true)
+            {
+                try
+                {
+                    Sendtype = 5;
+                    Connectsocket.Send(BitConverter.GetBytes(Sendtype));
+                    Connectsocket.Receive(callback);
+                    returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
+                    if (returnmsg == 1)
+                    {
+                        SendString(Connectsocket, filename);
+                        Console.WriteLine("已发送文章名：{0}", filename);
+                        result = ReceiveString(Connectsocket);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+            return result;
+        }
+        //操作类型5：上传所需文章索引（当前设定为文章名），返回文章内容，失败返回“失败”，文章不存在返回“文章不存在”
     }
 }

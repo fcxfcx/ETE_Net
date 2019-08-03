@@ -103,7 +103,7 @@ namespace server_net
             }
         }
 
-        public void Define(object o)
+        private void Define(object o)
         {
             Socket definesocket = ClientSocket[o as string];
             string clientNow = o as string;//把当前服务的客户端IP截取下来方便关闭线程和Socket
@@ -145,6 +145,13 @@ namespace server_net
                             definesocket.Send(type);
                             Console.WriteLine("已告知允许发送数据");
                             Register(definesocket);
+                            break;
+                        case 5:
+                            Console.WriteLine("开始回应发送文章内容请求");
+                            type = BitConverter.GetBytes(1);
+                            definesocket.Send(type);
+                            Console.WriteLine("已告知允许发送数据");
+                            SendFile(definesocket);
                             break;
                     }
                 }
@@ -203,6 +210,31 @@ namespace server_net
                 managesocket.Send(result);
             }
             catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private void SendFile(object o)//发送文章给客户端的操作
+        {
+            string filename;
+            Socket managesocket = o as Socket;
+            string result="失败";
+            try
+            {
+                filename = ReceiveString(managesocket);
+                string filepath = @"D:\UserDataTest\EnglishText\" + filename+".txt";
+                if(File.Exists(filepath))
+                {
+                    result = File.ReadAllText(filepath);
+                }
+                else
+                {
+                    result = "文件不存在";
+                }
+                SendString(managesocket, result);
+            }
+            catch(Exception e)
             {
                 Console.WriteLine(e);
             }
