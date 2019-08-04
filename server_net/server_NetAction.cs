@@ -144,7 +144,7 @@ namespace server_net
                             type = BitConverter.GetBytes(1);//给客户端发送消息表示已经接收到操作类型的信息
                             definesocket.Send(type);
                             Console.WriteLine("已告知允许发送数据");
-                            Register(definesocket);
+                            EyeStream(definesocket);
                             break;
                         case 5:
                             Console.WriteLine("开始回应发送文章内容请求");
@@ -235,6 +235,61 @@ namespace server_net
                 SendString(managesocket, result);
             }
             catch(Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private void EyeStream(object o)//接收眼球流数据并创建文件储存数据
+        {
+            string username;
+            string xs;
+            string ys;
+            int times,Result;
+            string filename;
+            Socket managesocket = o as Socket;
+            byte[] result = new byte[4];
+            try
+            {
+                username = ReceiveString(managesocket);
+                Console.WriteLine("收到用户名：{0}", username);
+                xs = ReceiveString(managesocket);
+                Console.WriteLine("收到x轴数据：{0}",xs );
+                ys = ReceiveString(managesocket);
+                Console.WriteLine("收到y轴数据：{0}", ys);
+                times = mydatabase.SearchTimes(username);
+                if(times == -1)//若出现了问题则返回-1
+                {
+                    result = BitConverter.GetBytes(-1);
+                }
+                else
+                {
+                    filename = times.ToString().PadLeft(4, '0');//文件名格式为当前已读篇数（如0012）
+                    string filepath = @"D:\UserDataTest\" + username + @"\"+filename+".txt";
+                    FileStream fs = new FileStream(filepath, FileMode.OpenOrCreate,FileAccess.ReadWrite, FileShare.ReadWrite);
+                        string mystring = "x轴眼球数据流:" + xs + "\ny轴眼球数据流:" + ys;
+                        byte[] data = Encoding.UTF8.GetBytes(mystring);
+                        fs.Write(data,0,data.Length);
+                        fs.Flush();
+                        fs.Close();
+                        Result = 0;
+                    FileInfo fi = new FileInfo(filepath);
+                    if(fi.Length ==0)
+                    {
+                        mydatabase.AddTimes(username);//使当前用户的已阅读篇目加一
+                        Result = 7;
+
+                    }
+                    else
+                    {
+                        Result = 0;
+                    }
+                    Console.WriteLine("处理结果为：{0}", Result);
+                    result = BitConverter.GetBytes(Result);//通过数据库创建，告知客户端，连接问题返回-1，成功返回0，数据库创建失败返回7，已存在返回8
+                }
+                managesocket.Send(result);
+            }
+            catch (Exception e)
             {
                 Console.WriteLine(e);
             }

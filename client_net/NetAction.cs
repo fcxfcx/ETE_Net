@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace client_net
 {
@@ -189,7 +186,7 @@ namespace client_net
         }
         //操作类型2：注册请求，返回值为注册结果，-1为连接问题，0为登陆成功，7为数据库创建失败，8为用户已存在
 
-        public int SendEyeStream(string str1,string str2)
+        public int EyeStream(string username, string xs, string ys)
         {
             int result = -1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
@@ -204,10 +201,12 @@ namespace client_net
                     returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
                     if (returnmsg == 1)
                     {
-                        SendString(Connectsocket,str1);
-                        Console.WriteLine("已发送x坐标流：{0}", str1);
-                        SendString(Connectsocket,str2);
-                        Console.WriteLine("已发送y坐标流：{0}", str2);
+                        SendString(Connectsocket, username);
+                        Console.WriteLine("已发送用户名：{0}", username);
+                        SendString(Connectsocket, xs);
+                        Console.WriteLine("已发送x轴眼球数据：{0}", xs);
+                        SendString(Connectsocket, ys);
+                        Console.WriteLine("已发送y轴眼球数据：{0}", ys);
                         Connectsocket.Receive(callback);
                         result = BitConverter.ToInt32(callback, 0);
                     }
@@ -249,5 +248,6 @@ namespace client_net
             return result;
         }
         //操作类型5：上传所需文章索引（当前设定为文章名），返回文章内容，失败返回“失败”，文章不存在返回“文章不存在”
+
     }
 }

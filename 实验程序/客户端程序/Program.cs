@@ -11,8 +11,8 @@ namespace 客户端程序
     {
         static void Main(string[] args)
         {
-            string username;
-            string password;
+            string username,xs;
+            string password,ys;
             int function;
             int connect,result=0;
             string Result = "";
@@ -52,6 +52,18 @@ namespace 客户端程序
                         newclient.DisConnect();
                         Console.WriteLine("已断开连接，请关闭程序");
                         Console.ReadKey();
+                        break;
+                    case 4:
+                        Console.WriteLine("请输入用户名：");
+                        username = Console.ReadLine();
+                        Console.WriteLine("请输入x轴数据");
+                        xs = Console.ReadLine();
+                        Console.WriteLine("请输入y轴数据");
+                        ys = Console.ReadLine();
+                        result = newclient.EyeStream(username, xs, ys);
+                        if (result == -1) Console.WriteLine("连接出现问题");
+                        if (result == 0) Console.WriteLine("上传成功");
+                        if (result == 7) Console.WriteLine("服务器出现问题，上传失败，请重试");
                         break;
                     case 5:
                         Console.WriteLine("请输入文章名：");

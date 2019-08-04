@@ -69,7 +69,7 @@ namespace database_basic
                     SqlCommand cmd1 = new SqlCommand();
                     cmd1.Connection = Conn;
                     cmd1.CommandType = CommandType.Text;
-                    cmd1.CommandText = "insert into 用户名及密码(用户名,密码) values('" + str1 + "','" + str2 + "')";
+                    cmd1.CommandText = "insert into 用户名及密码(用户名,密码) values('" + str1 + "','" + str2 + "');insert into 用户名及已阅读篇数(用户名,已阅读篇数) values('" + str1 + "',0)";
                     cmd1.ExecuteNonQuery();
 
                     SqlCommand cmd2 = new SqlCommand();
@@ -191,5 +191,59 @@ namespace database_basic
             { }
             return result;
         }
+
+        public int SearchTimes(string str1)
+         //向数据库中查询某用户已阅读篇数，返回int格式的篇数信息，若为-1则出现了错误
+        {
+            int result = -1;
+            try
+            {
+                SqlCommand cmd0 = new SqlCommand();
+                cmd0.Connection = Conn;
+                cmd0.CommandText = "select 已阅读篇数 from 用户名及已阅读篇数 where 用户名='" + str1 + "'";
+                cmd0.CommandType = CommandType.Text;
+                SqlDataReader sdr0 = cmd0.ExecuteReader();
+                while(sdr0.Read())
+                {
+                    result = (int)sdr0["已阅读篇数"];
+                }
+            }
+            catch
+            { }
+            return result;
+        }
+
+        public int AddTimes(string str1)
+        //向数据库中某用户的已阅读篇数加一，返回-1则出现错误，返回0则成功
+        {
+            int result = -1;
+            try
+            {
+                int times;
+                SqlCommand cmd0 = new SqlCommand();
+                cmd0.Connection = Conn;
+                cmd0.CommandText = "select 已阅读篇数 from 用户名及已阅读篇数 where 用户名='" + str1 + "'";
+                cmd0.CommandType = CommandType.Text;
+                SqlDataReader sdr0 = cmd0.ExecuteReader();
+                if (sdr0.Read())
+                {
+                    times = (int)sdr0["已阅读篇数"]+1;
+                    sdr0.Close();
+                    SqlCommand cmd1 = new SqlCommand();
+                    cmd1.Connection = Conn;
+                    cmd1.CommandType = CommandType.Text;
+                    cmd1.CommandText = "update 用户名及已阅读篇数 set 已阅读篇数="+times+" where 用户名='" + str1 + "' ";
+                    cmd1.ExecuteNonQuery();
+                    result = 0;
+                }
+                else
+                {
+                    result = -1;
+                }
+            }
+            catch { }
+            return result;
+        }
+
     }
 }
