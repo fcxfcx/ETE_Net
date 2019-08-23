@@ -95,11 +95,8 @@ namespace server_net
                         ClientThread.Add(newsocket.RemoteEndPoint.ToString(), newthread);
                     }
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-
+                catch 
+                { }
             }
         }
 
@@ -157,10 +154,8 @@ namespace server_net
                 }
                 catch (ThreadAbortException e)
                 { }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+                catch
+                { }
             }
         }//负责通信的newsocket将鉴定请求种类并执行相关操作
 
@@ -204,7 +199,7 @@ namespace server_net
                 password = ReceiveString(managesocket);
                 Console.WriteLine("收到注册密码：{0}", password);
                 database = mydatabase.NewUser(username, password);
-                Directory.CreateDirectory(@"D:\UserDataTest\" + username);//在注册的同时创建一个储存用户数据的文件夹
+                Directory.CreateDirectory(@"C:\ETEUserData\" + username);//在注册的同时创建一个储存用户数据的文件夹
                 Console.WriteLine("处理结果为：{0}", database);
                 result = BitConverter.GetBytes(database);//通过数据库创建，告知客户端，连接问题返回-1，成功返回0，数据库创建失败返回7，已存在返回8
                 managesocket.Send(result);
@@ -223,7 +218,7 @@ namespace server_net
             try
             {
                 filename = ReceiveString(managesocket);
-                string filepath = @"D:\UserDataTest\EnglishText\" + filename+".txt";
+                string filepath = @"C:\ETEUserData\EnglishText\" + filename+".txt";
                 if(File.Exists(filepath))
                 {
                     result = File.ReadAllText(filepath);
@@ -265,7 +260,7 @@ namespace server_net
                 else
                 {
                     filename = times.ToString().PadLeft(4, '0');//文件名格式为当前已读篇数（如0012）
-                    string filepath = @"D:\UserDataTest\" + username + @"\"+filename+".txt";
+                    string filepath = @"C:\ETEUserData\" + username + @"\"+filename+".txt";
                     FileStream fs = new FileStream(filepath, FileMode.OpenOrCreate,FileAccess.ReadWrite, FileShare.ReadWrite);
                         string mystring = "x轴眼球数据流:" + xs + "\ny轴眼球数据流:" + ys;
                         byte[] data = Encoding.UTF8.GetBytes(mystring);
