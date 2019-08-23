@@ -12,7 +12,7 @@ namespace server_net
 {
     public class NetAction
     {
-        private static string IP = "127.0.0.1";
+        private static string IP = "172.17.82.143";
         private static int Port = 8885;
         private int gettype;
         private new int GetType { get => gettype; set => gettype = value; }

@@ -8,7 +8,7 @@ namespace client_net
     public class NetAction
     {
         //常量部分
-        private static string IP = "127.0.0.1";//服务器公网IP地址
+        private static string IP = "59.110.167.50";//服务器公网IP地址
         private static int Port = 8885;//服务器开启的对应监听端口号
         private Socket Connectsocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);//设置一下请求连接的socket属性
         private int sendtype;
