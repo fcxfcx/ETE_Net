@@ -18,6 +18,9 @@ namespace server_net
         private new int GetType { get => gettype; set => gettype = value; }
         DatabaseAction mydatabase = new DatabaseAction();//数据库操作对象
 
+        public delegate void basicAction(object o);
+        
+        private Dictionary<int, basicAction> ActionDict = new Dictionary<int, basicAction>();
         private Dictionary<string, Socket> ClientSocket = new Dictionary<string, Socket>();
         private Dictionary<string, Thread> ClientThread = new Dictionary<string, Thread>();//利用键值对，通过用户IP找用户对应的处理线程
 
@@ -105,14 +108,26 @@ namespace server_net
             Socket definesocket = ClientSocket[o as string];
             string clientNow = o as string;//把当前服务的客户端IP截取下来方便关闭线程和Socket
             byte[] type = new byte[4];
+            basicAction login = Login;
+            basicAction register = Register;
+            basicAction sendfile = SendFile;
+            basicAction eyestream = EyeStream;
+            ActionDict.Add(1, login);
+            ActionDict.Add(2, register);
+            ActionDict.Add(3, sendfile);
+            ActionDict.Add(4, eyestream);
             while (true)
             {
                 try
                 {
+                    
                     int i = definesocket.Receive(type);
-                    GetType = BitConverter.ToInt32(type, 0);
                     Console.WriteLine("收到请求为：{0}", GetType);
-                    switch (GetType)
+                    type = BitConverter.GetBytes(1);
+                    definesocket.Send(type);
+                    Console.WriteLine("已告知允许发送数据");
+                    ActionDict[GetType](definesocket);
+                    /*switch (GetType)
                     {
                         case 1:
                             Console.WriteLine("开始回应登陆请求");
@@ -149,8 +164,7 @@ namespace server_net
                             definesocket.Send(type);
                             Console.WriteLine("已告知允许发送数据");
                             SendFile(definesocket);
-                            break;
-                    }
+                            break;*/
                 }
                 catch (ThreadAbortException e)
                 { }
