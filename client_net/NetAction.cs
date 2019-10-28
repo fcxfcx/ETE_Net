@@ -8,59 +8,62 @@ namespace client_net
     public class NetAction
     {
         //常量部分
-        private static string IP = "59.110.167.50";//服务器公网IP地址
-        private static int Port = 8885;//服务器开启的对应监听端口号
-        private Socket Connectsocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);//设置一下请求连接的socket属性
-        private int sendtype;
-        public int Sendtype { get => sendtype; set => sendtype = value; }//封装一个string类型的变量作为提示服务器端执行何操作
+        private const string IP = "59.110.167.50"; //服务器公网IP地址
+        private const int Port = 8885; //服务器开启的对应监听端口号
+        private readonly Socket _connectSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);//设置一下请求连接的socket属性
+        private int _sendType;
 
 
         //方法部分
-        private void SendString(Socket s, string str)
+        private static void SendString(Socket s, string str)
         {
-            int i = str.Length;
+            var i = str.Length;
             if (i == 0) return;
             else i *= 2;
-            byte[] datasize = new byte[4];
-            datasize = BitConverter.GetBytes(i);
-            byte[] sendbytes = Encoding.Unicode.GetBytes(str);
+            var dataSize = BitConverter.GetBytes(i);
+            var sendBytes = Encoding.Unicode.GetBytes(str);
             try
             {
-                NetworkStream netstream = new NetworkStream(s);
-                netstream.WriteTimeout = 10000;
-                netstream.Write(datasize, 0, 4);
-                netstream.Write(sendbytes, 0, sendbytes.Length);
-                netstream.Flush();
+                var netStream = new NetworkStream(s) {WriteTimeout = 10000};
+                netStream.Write(dataSize, 0, 4);
+                netStream.Write(sendBytes, 0, sendBytes.Length);
+                netStream.Flush();
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
         }//封装好的发送字符串的方法，可以保证逐句发送且完整发送
 
-        private string ReceiveString(Socket s)
+        private static string ReceiveString(Socket s)
         {
-            string result = "";
+            var result = "";
             try
             {
-                NetworkStream netstream = new NetworkStream(s);
-                netstream.ReadTimeout = 10000;
-                byte[] datasize = new byte[4];
-                netstream.Read(datasize, 0, 4);
-                int size = BitConverter.ToInt32(datasize, 0);
-                byte[] message = new byte[size];
-                int dataleft = size;
-                int start = 0;
-                while (dataleft > 0)
+                var netStream = new NetworkStream(s) {ReadTimeout = 10000};
+                var dataSize = new byte[4];
+                netStream.Read(dataSize, 0, 4);
+                var size = BitConverter.ToInt32(dataSize, 0);
+                var message = new byte[size];
+                var dataLeft = size;
+                var start = 0;
+                while (dataLeft > 0)
                 {
-                    int recv = netstream.Read(message, start, dataleft);
-                    start += recv;
-                    dataleft -= recv;
+                    var receive = netStream.Read(message, start, dataLeft);
+                    start += receive;
+                    dataLeft -= receive;
                 }
                 result = Encoding.Unicode.GetString(message);
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
+
             return result;
         }//接收一句字符串的方法
 
-        private bool IsConnected(Socket a)//该方法用于判断socket是否处于连接状态
+        private static bool IsConnected(Socket a)//该方法用于判断socket是否处于连接状态
         {
                 bool blockingState = a.Blocking;
                 try
@@ -89,13 +92,13 @@ namespace client_net
             IPAddress ip = IPAddress.Parse(IP);
             try
             {
-                Connectsocket.Connect(new IPEndPoint(ip, Port));
+                _connectSocket.Connect(new IPEndPoint(ip, Port));
             }
             catch(Exception e)
             {
                 Console.WriteLine(e);
             }
-            if (IsConnected(Connectsocket) == true)
+            if (IsConnected(_connectSocket) == true)
                 return 0;
             else
                 return 1;
@@ -104,15 +107,15 @@ namespace client_net
         public int DisConnect()//操作类型3：与服务器断开连接，成功返回0，失败返回1
         {
             int result = 1;
-            if (IsConnected(Connectsocket) == true)//首先会判断连接是否存在，防止误操作,若连接存在，则断开连接释放内存
+            if (IsConnected(_connectSocket) == true)//首先会判断连接是否存在，防止误操作,若连接存在，则断开连接释放内存
             {
                 try
                 {
-                    Sendtype = 3;
+                    _sendType = 3;
                     byte[] type = new byte[4];
-                    type = BitConverter.GetBytes(Sendtype);
-                    Connectsocket.Send(type);
-                    Connectsocket.Shutdown(SocketShutdown.Both); Connectsocket.Close();
+                    type = BitConverter.GetBytes(_sendType);
+                    _connectSocket.Send(type);
+                    _connectSocket.Shutdown(SocketShutdown.Both); _connectSocket.Close();
                     return 0;
                 }
                 catch
@@ -126,21 +129,21 @@ namespace client_net
             int result=-1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
-            if (IsConnected(Connectsocket)==true)
+            if (IsConnected(_connectSocket)==true)
             {
                 try
                 {
-                    Sendtype =1;
-                    Connectsocket.Send(BitConverter.GetBytes(Sendtype));
-                    Connectsocket.Receive(callback);
+                    _sendType =1;
+                    _connectSocket.Send(BitConverter.GetBytes(_sendType));
+                    _connectSocket.Receive(callback);
                     returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
                     if (returnmsg == 1)
                     {
-                        SendString(Connectsocket, username);
+                        SendString(_connectSocket, username);
                         Console.WriteLine("已发送用户名：{0}",username);
-                        SendString(Connectsocket, password);
+                        SendString(_connectSocket, password);
                         Console.WriteLine("已发送密码：{0}",password);
-                        Connectsocket.Receive(callback);
+                        _connectSocket.Receive(callback);
                         result = BitConverter.ToInt32(callback, 0);
                     }
                 }
@@ -159,21 +162,21 @@ namespace client_net
             int result = -1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
-            if (IsConnected(Connectsocket) == true)
+            if (IsConnected(_connectSocket) == true)
             {
                 try
                 {
-                    Sendtype = 2;
-                    Connectsocket.Send(BitConverter.GetBytes(Sendtype));
-                    Connectsocket.Receive(callback);
+                    _sendType = 2;
+                    _connectSocket.Send(BitConverter.GetBytes(_sendType));
+                    _connectSocket.Receive(callback);
                     returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
                     if(returnmsg==1)
                     {
-                        SendString(Connectsocket, username);
+                        SendString(_connectSocket, username);
                         Console.WriteLine("已发送用户名：{0}",username);
-                        SendString(Connectsocket, password);
+                        SendString(_connectSocket, password);
                         Console.WriteLine("已发送密码：{0}",password);
-                        Connectsocket.Receive(callback);
+                        _connectSocket.Receive(callback);
                         result = BitConverter.ToInt32(callback, 0);
                     }
                 }
@@ -191,23 +194,23 @@ namespace client_net
             int result = -1;//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
-            if (IsConnected(Connectsocket) == true)
+            if (IsConnected(_connectSocket) == true)
             {
                 try
                 {
-                    Sendtype = 4;
-                    Connectsocket.Send(BitConverter.GetBytes(Sendtype));
-                    Connectsocket.Receive(callback);
+                    _sendType = 4;
+                    _connectSocket.Send(BitConverter.GetBytes(_sendType));
+                    _connectSocket.Receive(callback);
                     returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
                     if (returnmsg == 1)
                     {
-                        SendString(Connectsocket, username);
+                        SendString(_connectSocket, username);
                         Console.WriteLine("已发送用户名：{0}", username);
-                        SendString(Connectsocket, xs);
+                        SendString(_connectSocket, xs);
                         Console.WriteLine("已发送x轴眼球数据：{0}", xs);
-                        SendString(Connectsocket, ys);
+                        SendString(_connectSocket, ys);
                         Console.WriteLine("已发送y轴眼球数据：{0}", ys);
-                        Connectsocket.Receive(callback);
+                        _connectSocket.Receive(callback);
                         result = BitConverter.ToInt32(callback, 0);
                     }
                 }
@@ -225,19 +228,19 @@ namespace client_net
             string result = "失败";//如果返回值是-1则说明连接出现问题
             byte[] callback = new byte[4];
             int returnmsg = 0;
-            if (IsConnected(Connectsocket) == true)
+            if (IsConnected(_connectSocket) == true)
             {
                 try
                 {
-                    Sendtype = 5;
-                    Connectsocket.Send(BitConverter.GetBytes(Sendtype));
-                    Connectsocket.Receive(callback);
+                    _sendType = 5;
+                    _connectSocket.Send(BitConverter.GetBytes(_sendType));
+                    _connectSocket.Receive(callback);
                     returnmsg = BitConverter.ToInt32(callback, 0);//在确认服务器收到了操作种类信息后再传值
                     if (returnmsg == 1)
                     {
-                        SendString(Connectsocket, filename);
+                        SendString(_connectSocket, filename);
                         Console.WriteLine("已发送文章名：{0}", filename);
-                        result = ReceiveString(Connectsocket);
+                        result = ReceiveString(_connectSocket);
                     }
                 }
                 catch (Exception e)

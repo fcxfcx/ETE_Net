@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using database_basic;
 using System.Net;
@@ -10,293 +10,230 @@ using System.IO;
 
 namespace server_net
 {
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public class NetAction
     {
-        private static string IP = "172.17.82.143";
-        private static int Port = 8885;
-        private int gettype;
-        private new int GetType { get => gettype; set => gettype = value; }
-        DatabaseAction mydatabase = new DatabaseAction();//数据库操作对象
-
-        public delegate void basicAction(object o);
-        
-        private Dictionary<int, basicAction> ActionDict = new Dictionary<int, basicAction>();
-        private Dictionary<string, Socket> ClientSocket = new Dictionary<string, Socket>();
-        private Dictionary<string, Thread> ClientThread = new Dictionary<string, Thread>();//利用键值对，通过用户IP找用户对应的处理线程
-
-        private void SendString(Socket s, string str)
+        //字段
+        private const string IP = "172.17.82.143";
+        private const int Port = 8885;
+        private readonly DatabaseAction _myDatabase = new DatabaseAction();//数据库操作对象
+        //委托
+        private delegate void BasicAction(object o);
+        //字典
+        private readonly Dictionary<int, BasicAction> _actionDict = new Dictionary<int, BasicAction>();
+        private readonly Dictionary<string, Socket> _clientSocket = new Dictionary<string, Socket>();
+        private readonly Dictionary<string, Thread> _clientThread = new Dictionary<string, Thread>();//利用键值对，通过用户IP找用户对应的处理线程
+        //方法
+        private static void SendString(Socket s, string str)
         {
-            int i = str.Length;
-            if (i == 0) return;
-            else i *= 2;
-            byte[] datasize = new byte[4];
-            datasize = BitConverter.GetBytes(i);
-            byte[] sendbytes = Encoding.Unicode.GetBytes(str);
+            var i = str.Length;
+            if (i == 0)
+                return;
+            i *= 2;
+            var dataSize = BitConverter.GetBytes(i);
+            var sendBytes = Encoding.Unicode.GetBytes(str);
             try
             {
-                NetworkStream netstream = new NetworkStream(s);
-                netstream.WriteTimeout = 10000;
-                netstream.Write(datasize, 0, 4);
-                netstream.Write(sendbytes, 0, sendbytes.Length);
-                netstream.Flush();
+                var netStream = new NetworkStream(s) {WriteTimeout = 10000};
+                netStream.Write(dataSize, 0, 4);
+                netStream.Write(sendBytes, 0, sendBytes.Length);
+                netStream.Flush();
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
         }//封装好的发送字符串的方法，可以保证逐句发送且完整发送
-
-        private string ReceiveString(Socket s)
+        private static string ReceiveString(Socket s)
         {
-            string result = "";
+            var result = "";
             try
             {
-                NetworkStream netstream = new NetworkStream(s);
-                netstream.ReadTimeout = 10000;
-                byte[] datasize = new byte[4];
-                netstream.Read(datasize, 0, 4);
-                int size = BitConverter.ToInt32(datasize, 0);
-                byte[] message = new byte[size];
-                int dataleft = size;
-                int start = 0;
-                while (dataleft > 0)
+                var netStream = new NetworkStream(s) {ReadTimeout = 10000};
+                var dataSize = new byte[4];
+                netStream.Read(dataSize, 0, 4);
+                var size = BitConverter.ToInt32(dataSize, 0);
+                var message = new byte[size];
+                var dataLeft = size;
+                var start = 0;
+                while (dataLeft > 0)
                 {
-                    int recv = netstream.Read(message, start, dataleft);
-                    start += recv;
-                    dataleft -= recv;
+                    var receive = netStream.Read(message, start, dataLeft);
+                    start += receive;
+                    dataLeft -= receive;
                 }
                 result = Encoding.Unicode.GetString(message);
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
+
             return result;
         }//接收一句字符串的方法
-
         public void WatchBegin()
         {
-            IPAddress myip = IPAddress.Parse(IP);
-            Socket socketwatch = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socketwatch.Bind(new IPEndPoint(myip, Port));
-            socketwatch.Listen(100);//开启监听队列
+            var myIp = IPAddress.Parse(IP);
+            var socketWatch = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socketWatch.Bind(new IPEndPoint(myIp, Port));
+            socketWatch.Listen(100);//开启监听队列
             Console.WriteLine("监听开始");
-            ThreadPool.QueueUserWorkItem(Listen, socketwatch);//向线程池里加入Listen
+            ThreadPool.QueueUserWorkItem(Listen, socketWatch);//向线程池里加入Listen
             Console.ReadKey();
         }//服务器端主要的方法（一键开始服务）
-
-        public void Listen(object o)//等待客户端的连接，创建一个负责通信的socket（newsocket）
+        [SuppressMessage("ReSharper", "FunctionNeverReturns")]
+        private void Listen(object o)//等待客户端的连接，创建一个负责通信的socket
         {
             while (true)
             {
                 try
                 {
-                    byte[] temp = new byte[1024];
-                    Socket socketwatch = o as Socket;
-                    Socket newsocket = socketwatch.Accept();
-                    Console.WriteLine("连接成功：{0}", newsocket.RemoteEndPoint.ToString());
-                    if (ClientSocket.ContainsKey(newsocket.RemoteEndPoint.ToString()) == false)//先判断服务器端是否存在当前IP的服务socket
-                    {
-                        ClientSocket.Add(newsocket.RemoteEndPoint.ToString(), newsocket);
-                        Thread newthread = new Thread(Define);
-                        newthread.IsBackground = true;
-                        newthread.Start(newsocket.RemoteEndPoint.ToString());//以当前客户端的IP和端口号为对象，创建对应服务
-                        ClientThread.Add(newsocket.RemoteEndPoint.ToString(), newthread);
-                    }
+                    if (!(o is Socket socketWatch)) continue;
+                    var newSocket = socketWatch.Accept();
+                    Console.WriteLine("连接成功：{0}", newSocket.RemoteEndPoint);
+                    if (_clientSocket.ContainsKey(newSocket.RemoteEndPoint.ToString())) continue;
+                    _clientSocket.Add(newSocket.RemoteEndPoint.ToString(), newSocket);
+                    var newThread = new Thread(Define) {IsBackground = true};
+                    newThread.Start(newSocket.RemoteEndPoint.ToString());//以当前客户端的IP和端口号为对象，创建对应服务
+                    _clientThread.Add(newSocket.RemoteEndPoint.ToString(), newThread);
                 }
-                catch 
-                { }
+                catch
+                {
+                    // ignored
+                }
             }
         }
-
         private void Define(object o)
         {
-            Socket definesocket = ClientSocket[o as string];
-            string clientNow = o as string;//把当前服务的客户端IP截取下来方便关闭线程和Socket
-            byte[] type = new byte[4];
-            basicAction login = Login;
-            basicAction register = Register;
-            basicAction sendfile = SendFile;
-            basicAction eyestream = EyeStream;
-            ActionDict.Add(1, login);
-            ActionDict.Add(2, register);
-            ActionDict.Add(3, sendfile);
-            ActionDict.Add(4, eyestream);
+            var defineSocket = _clientSocket[o as string ?? throw new InvalidOperationException("The object of Define must be a string ")];
+            var clientNow = (string) o;//把当前服务的客户端IP截取下来方便关闭线程和Socket
+            var type = new byte[4];
+            BasicAction login = Login;
+            BasicAction register = Register;
+            BasicAction sendfile = SendFile;
+            BasicAction streamer = EyeStream;
+            _actionDict.Add(1, login);
+            _actionDict.Add(2, register);
+            _actionDict.Add(5, sendfile);
+            _actionDict.Add(4, streamer);
             while (true)
             {
                 try
                 {
                     
-                    int i = definesocket.Receive(type);
-                    Console.WriteLine("收到请求为：{0}", GetType);
+                    defineSocket.Receive(type);
+                    var i = BitConverter.ToInt32(type, 0);
+                    Console.WriteLine("收到请求为：{0}", i);
                     type = BitConverter.GetBytes(1);
-                    definesocket.Send(type);
+                    defineSocket.Send(type);
                     Console.WriteLine("已告知允许发送数据");
-                    ActionDict[GetType](definesocket);
-                    /*switch (GetType)
-                    {
-                        case 1:
-                            Console.WriteLine("开始回应登陆请求");
-                            type = BitConverter.GetBytes(1);//给客户端发送消息表示已经接收到操作类型的信息
-                            definesocket.Send(type);
-                            Console.WriteLine("已告知允许发送数据");
-                            Login(definesocket);
-                            break;
-                        case 2:
-                            Console.WriteLine("开始回应注册请求");
-                            type = BitConverter.GetBytes(1);//给客户端发送消息表示已经接收到操作类型的信息
-                            definesocket.Send(type);
-                            Console.WriteLine("已告知允许发送数据");
-                            Register(definesocket);
-                            break;
-                        case 3:
-                            Console.WriteLine("客户端选择断开连接");
-                            ClientSocket.Remove(definesocket.RemoteEndPoint.ToString());//如果客户端选择断开则去除对应的socket连接和线程
-                            definesocket.Shutdown(SocketShutdown.Both);
-                            definesocket.Close();
-                            ClientThread[clientNow].Abort();
-                            ClientThread.Remove(definesocket.RemoteEndPoint.ToString());
-                            break;
-                        case 4:
-                            Console.WriteLine("开始回应上传眼球流数据请求");
-                            type = BitConverter.GetBytes(1);//给客户端发送消息表示已经接收到操作类型的信息
-                            definesocket.Send(type);
-                            Console.WriteLine("已告知允许发送数据");
-                            EyeStream(definesocket);
-                            break;
-                        case 5:
-                            Console.WriteLine("开始回应发送文章内容请求");
-                            type = BitConverter.GetBytes(1);
-                            definesocket.Send(type);
-                            Console.WriteLine("已告知允许发送数据");
-                            SendFile(definesocket);
-                            break;*/
+                    _actionDict[i](defineSocket);
                 }
-                catch (ThreadAbortException e)
+                catch (ThreadAbortException)
                 { }
                 catch
-                { }
+                {
+                    // ignored
+                }
             }
-        }//负责通信的newsocket将鉴定请求种类并执行相关操作
-
+        }//负责通信的socket将鉴定请求种类并执行相关操作
         private void Login(object o)//执行登陆的操作
         {
-            string username;
-            string password;
-            Socket managesocket = o as Socket;
-            byte[] result = new byte[4];
-            int database;
+            var manageSocket = o as Socket;
             try
             {
 
-                username = ReceiveString(managesocket);
+                var username = ReceiveString(manageSocket);
                 Console.WriteLine("收到登陆用户名：{0}", username);
-                password = ReceiveString(managesocket);
+                var password = ReceiveString(manageSocket);
                 Console.WriteLine("收到登陆密码：{0}", password);
-                database = mydatabase.FindUser(username, password);
+                var database = _myDatabase.FindUser(username, password);
                 Console.WriteLine("处理结果为：{0}", database);
-                result = BitConverter.GetBytes(database);//通过数据库查找，告知客户端，连接问题返回-1，登陆成功返回0，用户名或密码不正确返回7
-                managesocket.Send(result);
+                var result = BitConverter.GetBytes(database);
+                manageSocket?.Send(result);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
         }
-
         private void Register(object o)//执行注册的操作
         {
-            string username;
-            string password;
-            Socket managesocket = o as Socket;
-            byte[] result = new byte[4];
-            int database;
+            var manageSocket = o as Socket;
             try
             {
 
-                username = ReceiveString(managesocket);
+                var username = ReceiveString(manageSocket);
                 Console.WriteLine("收到注册用户名：{0}", username);
-                password = ReceiveString(managesocket);
+                var password = ReceiveString(manageSocket);
                 Console.WriteLine("收到注册密码：{0}", password);
-                database = mydatabase.NewUser(username, password);
+                var database = _myDatabase.NewUser(username, password);
                 Directory.CreateDirectory(@"C:\ETEUserData\" + username);//在注册的同时创建一个储存用户数据的文件夹
                 Console.WriteLine("处理结果为：{0}", database);
-                result = BitConverter.GetBytes(database);//通过数据库创建，告知客户端，连接问题返回-1，成功返回0，数据库创建失败返回7，已存在返回8
-                managesocket.Send(result);
+                var result = BitConverter.GetBytes(database);
+                manageSocket?.Send(result);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
         }
-
-        private void SendFile(object o)//发送文章给客户端的操作
+        private static void SendFile(object o)//发送文章给客户端的操作
         {
-            string filename;
-            Socket managesocket = o as Socket;
-            string result="失败";
+            var manageSocket = o as Socket;
             try
             {
-                filename = ReceiveString(managesocket);
-                string filepath = @"C:\ETEUserData\EnglishText\" + filename+".txt";
-                if(File.Exists(filepath))
-                {
-                    result = File.ReadAllText(filepath);
-                }
-                else
-                {
-                    result = "文件不存在";
-                }
-                SendString(managesocket, result);
+                var filename = ReceiveString(manageSocket);
+                var filepath = @"C:\ETEUserData\EnglishText\" + filename+".txt";
+                var result = File.Exists(filepath) ? File.ReadAllText(filepath) : "文件不存在";
+                SendString(manageSocket, result);
             }
             catch(Exception e)
             {
                 Console.WriteLine(e);
             }
         }
-
         private void EyeStream(object o)//接收眼球流数据并创建文件储存数据
         {
-            string username;
-            string xs;
-            string ys;
-            int times,Result;
-            string filename;
-            Socket managesocket = o as Socket;
-            byte[] result = new byte[4];
+            var manageSocket = o as Socket;
             try
             {
-                username = ReceiveString(managesocket);
+                var username = ReceiveString(manageSocket);
                 Console.WriteLine("收到用户名：{0}", username);
-                xs = ReceiveString(managesocket);
+                var xs = ReceiveString(manageSocket);
                 Console.WriteLine("收到x轴数据：{0}",xs );
-                ys = ReceiveString(managesocket);
+                var ys = ReceiveString(manageSocket);
                 Console.WriteLine("收到y轴数据：{0}", ys);
-                times = mydatabase.SearchTimes(username);
+                var times = _myDatabase.SearchTimes(username);
+                byte[] result;
                 if(times == -1)//若出现了问题则返回-1
                 {
                     result = BitConverter.GetBytes(-1);
                 }
                 else
                 {
-                    filename = times.ToString().PadLeft(4, '0');//文件名格式为当前已读篇数（如0012）
-                    string filepath = @"C:\ETEUserData\" + username + @"\"+filename+".txt";
-                    FileStream fs = new FileStream(filepath, FileMode.OpenOrCreate,FileAccess.ReadWrite, FileShare.ReadWrite);
-                        string mystring = "x轴眼球数据流:" + xs + "\ny轴眼球数据流:" + ys;
-                        byte[] data = Encoding.UTF8.GetBytes(mystring);
+                    var filename = times.ToString().PadLeft(4, '0');
+                    var filepath = @"C:\ETEUserData\" + username + @"\"+filename+".txt";
+                    var fs = new FileStream(filepath, FileMode.OpenOrCreate,FileAccess.ReadWrite, FileShare.ReadWrite);
+                        var myString = "x轴眼球数据流:" + xs + "\ny轴眼球数据流:" + ys;
+                        var data = Encoding.UTF8.GetBytes(myString);
                         fs.Write(data,0,data.Length);
                         fs.Flush();
                         fs.Close();
-                        Result = 0;
-                    FileInfo fi = new FileInfo(filepath);
+                        var fi = new FileInfo(filepath);
                     if(fi.Length ==0)
                     {
-                        mydatabase.AddTimes(username);//使当前用户的已阅读篇目加一
-                        Result = 7;
+                        _myDatabase.AddTimes(username);//使当前用户的已阅读篇目加一
+                        result = BitConverter.GetBytes(0);
 
                     }
                     else
                     {
-                        Result = 0;
+                        result = BitConverter.GetBytes(7);
                     }
-                    Console.WriteLine("处理结果为：{0}", Result);
-                    result = BitConverter.GetBytes(Result);//通过数据库创建，告知客户端，连接问题返回-1，成功返回0，数据库创建失败返回7，已存在返回8
+                    Console.WriteLine("处理结果为：{0}",BitConverter.ToInt32(result,0)); //通过数据库创建，告知客户端，连接问题返回-1，成功返回0，创建失败返回7
                 }
-                managesocket.Send(result);
+                manageSocket?.Send(result);
             }
             catch (Exception e)
             {
